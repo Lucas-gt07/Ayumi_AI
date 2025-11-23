@@ -1,0 +1,40 @@
+// Sistema completo de voz
+
+import { AyumiWakeWord } from "./voiceListener.js";
+import { AyumiRecorder } from "./ayumiRecorder.js";
+import { AyumiTTS } from "./ayumiTTS.js";
+import { AyumiEmotion } from "./ayumiReactions.js";
+import { ayumiBrain } from "../core/ayumiBrain.js";  // IA principal
+
+export class AyumiVoiceSystem {
+    constructor(animationController) {
+        this.tts = new AyumiTTS();
+        this.recorder = new AyumiRecorder((t) => this.processUserSpeech(t));
+        this.animation = animationController;
+    }
+
+    start() {
+        const wake = new AyumiWakeWord(() => {
+            this.animation.wakeUp();
+            this.tts.speak("Oi mestre, estou ouvindo você!", () => {
+                this.recorder.startRecording();
+            });
+        });
+
+        wake.start();
+    }
+
+    async processUserSpeech(text) {
+        const emotion = AyumiEmotion(text);
+
+        if (emotion) {
+            this.animation.setEmotion(emotion.emotion);
+            this.tts.speak(emotion.phrase);
+            return;
+        }
+
+        const aiReply = await ayumiBrain(text);
+        this.animation.talk();
+        this.tts.speak(aiReply, null, () => this.animation.idle());
+    }
+}
